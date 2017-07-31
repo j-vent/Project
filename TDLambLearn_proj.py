@@ -10,12 +10,22 @@ lamb = 0
 alpha = 0.01/numactfeat #change in agent
 epsilon = 0.1
 weight = np.zeros(len(Actions) * numfeat) #^
-gamma = 1
-numEpisodes = 1000
+gamma_prime = 1
+gamma_orig = 1
+numEpisodes = 50
 x_origval =[]
 States, Actions = returnVal() #change name 
 
 #x_orig = getStateActionvector(returnKanerva(), action)
+
+
+kanerva_obj = KanervaCoding([-1.6,-1.6,-1.6,-1.6], [1.6,1.6,1.6,1.6], numfeat, random_seed = 26, bias = True)
+s1,s2,s3,s4 = returnServos()
+observations = init(s1,s2,s3,s4)
+state = kanerva_obj.get_x(observations, numactfeat, ignore=None)
+
+def returnKanerva():
+    return state
 
 def getStateActionvector(s,a):
     sa_vector = np.zeros(len(Actions) * numfeat)
@@ -46,8 +56,8 @@ def epPolicy(state):
         action =greedyPolicy(state)
     return action
 
-def return_V(state,action, time): #remove time probably
-    x = getStateActionvector(state,Actions[a])
+def return_V(state,action): 
+    x = getStateActionvector(state,action)
     v = x * weight
     return v
 
@@ -56,32 +66,43 @@ terminal = [-2,-2,-2,-2]
 #print(greedyPolicy(returnKanerva()))
 time = 0
 for episodeNum in range(numEpisodes): 
-    #idk what to put here
+    retval = 0
     delta = 0
     elig_orig = np.zeros(len(Actions) * numfeat) 
     state = returnKanerva()
     action = epPolicy(state)
-    E_orig = updateE(state,time) #init = 1 for seen 0 everything else
-    
-    while((state != terminal).all()): #does not need a terminal 
-        observedprime = takeAction(state,action)
+    E = updateE(state,time) #init = 1 for seen 0 everything else
+    entropyE_orig = entropy(E)
+    #print("state", state, "time", time)
+    #print("This is e_orig",E_orig, "state", state, "time", time)
+    while(time != 50): #does not need a terminal (state != terminal).all()
+        #print("time", time)
+        #print("This is e_orig",E_orig)
+        print("Action taken:",action)
+        observedprime = takeAction(state,action)#why do i even need to pass state? 
+        #print("observation",observedprime)
         stateprime = kanerva_obj.get_x(observedprime, numactfeat, ignore=None, distance_metric='hamming')
-        E_prime = updateE(stateprime, time)# oc= 1 if even happened; oc = 0 if not
-        reward = returnReward(E_orig,E_prime)
+        print("encoded stateprime",stateprime)
+        E = updateE(stateprime, time)# oc= 1 if even happened; oc = 0 if not
+        entropyE_prime = entropy(E)
+        print("This is E_orig", entropyE_orig, "This is E prime", entropyE_prime)
+        
+        
+        reward = returnReward(entropyE_orig,entropyE_prime)
+        actionprime = (epPolicy(stateprime))
         print("reward:",reward, "current state", state, "new state", stateprime)
-        '''
+        
         retval = retval + reward #return val: sum of all rewards in the episode
         
     
-        delta = reward(E,E) + (gamma_prime* v_prime)- v_orig #reward is from curiosity
+        delta = reward + (gamma_prime* return_V(stateprime,actionprime))- return_V(state,action) #reward is from curiosity
         elig_prime= lamb * gamma_orig* elig_orig 
-        weight_prime = weight_prime + alpha * delta * elig_prime        
-        
+        weight_prime = weight + alpha * delta * elig_prime        
         state = stateprime
         gamma_orig= gamma_prime
-        #action = actionprime 
+        action = actionprime 
         time += 1 #keeps track of "time"
-        E_orig = E_prime
-   
-        '''
-  
+        entropyE_orig = entropyE_prime
+        weight = weight_prime
+        elig_orig = elig_prime
+print("final return: ", retVal)
