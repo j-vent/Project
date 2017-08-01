@@ -7,15 +7,17 @@ constant = 1
 def entropy(E):#scipy.stats.entropy(E)
     H = 0
     for x in (E):
-        print (x)
-        H -= x * math.log(x,2) #base 2
-    
-    print("entropy:", H)
+        #print ("x", x)
+        if(x > 0):
+            H -= x * math.log(x,2) #base 2
+      
+    #print("entropy:", H)
+    #print(H)
     return H
 
 def returnReward(E_o, E_p):
-    reward = constant * (entropy(E_orig) - entropy(E_prime)) 
-    return reward 
+    reward = constant * (E_o - E_p) 
+    return -reward 
 
 '''
 def better_entropy(E):
